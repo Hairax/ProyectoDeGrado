@@ -1,0 +1,174 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: "traefik:v2.9"
+    container_name: traefik
+    restart: always
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"  # Acceso a los servicios desde localhost
+      - "8080:8080"  # Dashboard de Traefik
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - backend
+
+  gateway:
+    build:
+      context: .
+      dockerfile: apps/apigateway/Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      - auth-service
+      - orders-service
+      - users-service
+      - ops-service
+      - bi-service
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gateway.rule=Host(`localhost`)"
+      - "traefik.http.services.gateway.loadbalancer.server.port=8081"
+    networks:
+      - backend
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: apps/auth-service/Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      - db_core
+      - db_audit
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.auth.rule=Host(`localhost`) && PathPrefix(`/auth`)"
+      - "traefik.http.services.auth.loadbalancer.server.port=3001"
+    networks:
+      - backend
+
+  orders-service:
+    build:
+      context: .
+      dockerfile: apps/orders-service/Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      - db_core
+      - db_audit
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.orders.rule=Host(`localhost`) && PathPrefix(`/orders`)"
+      - "traefik.http.services.orders.loadbalancer.server.port=3002"
+    networks:
+      - backend
+
+  users-service:
+    build:
+      context: .
+      dockerfile: apps/users-service/Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      - db_core
+      - db_audit
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.users.rule=Host(`localhost`) && PathPrefix(`/users`)"
+      - "traefik.http.services.users.loadbalancer.server.port=3003"
+    networks:
+      - backend
+
+  ops-service:
+    build:
+      context: .
+      dockerfile: apps/ops-service/Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      - db_core
+      - db_audit
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ops.rule=Host(`localhost`) && PathPrefix(`/ops`)"
+      - "traefik.http.services.ops.loadbalancer.server.port=3004"
+    networks:
+      - backend
+
+  bi-service:
+    build:
+      context: .
+      dockerfile: apps/bi-service/Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      - db_bi
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bi.rule=Host(`localhost`) && PathPrefix(`/bi`)"
+      - "traefik.http.services.bi.loadbalancer.server.port=8005"
+    networks:
+      - backend
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    depends_on:
+      - gateway
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`localhost`) && PathPrefix(`/`)"
+      - "traefik.http.services.frontend.loadbalancer.server.port=5173"
+    networks:
+      - backend
+
+  db_core:
+    image: mysql:8
+    container_name: db_core
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE_CORE}
+    volumes:
+      - db_core_data:/var/lib/mysql
+    networks:
+      - backend
+
+  db_bi:
+    image: mysql:8
+    container_name: db_bi
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE_BI}
+    volumes:
+      - db_bi_data:/var/lib/mysql
+    networks:
+      - backend
+
+  db_audit:
+    image: mysql:8
+    container_name: db_audit
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE_AUDIT}
+    volumes:
+      - db_audit_data:/var/lib/mysql
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  db_core_data:
+  db_bi_data:
+  db_audit_data:

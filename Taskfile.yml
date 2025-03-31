@@ -1,0 +1,28 @@
+version: "3"
+
+tasks:
+  start:
+    desc: "Levanta todos los servicios con Docker y ejecuta los comandos internos"
+    cmds:
+      - docker compose up --build -d
+      - task start-frontend
+      - task start-microservices
+
+  stop:
+    desc: "Detiene todos los contenedores"
+    cmds:
+      - docker compose down
+
+  start-frontend:
+    desc: "Inicia el frontend con Vite"
+    cmds:
+      - cd apps/frontend && pnpm dev
+
+  start-microservices:
+    desc: "Inicia los microservicios con NestJS y Python"
+    cmds:
+      - cd apps/auth-service && pnpm start &
+      - cd apps/orders-service && pnpm start &
+      - cd apps/users-service && pnpm start &
+      - cd apps/ops-service && pnpm start &
+      - cd apps/bi-service && python main.py &
