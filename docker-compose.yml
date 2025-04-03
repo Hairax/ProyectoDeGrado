@@ -10,8 +10,8 @@ services:
       - "--providers.docker=true"
       - "--entrypoints.web.address=:80"
     ports:
-      - "80:80"  # Acceso a los servicios desde localhost
-      - "8080:8080"  # Dashboard de Traefik
+      - "80:80"
+      - "8080:8080"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
     networks:
@@ -45,10 +45,6 @@ services:
     depends_on:
       - db_core
       - db_audit
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.auth.rule=Host(`localhost`) && PathPrefix(`/auth`)"
-      - "traefik.http.services.auth.loadbalancer.server.port=3001"
     networks:
       - backend
 
@@ -61,10 +57,6 @@ services:
     depends_on:
       - db_core
       - db_audit
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.orders.rule=Host(`localhost`) && PathPrefix(`/orders`)"
-      - "traefik.http.services.orders.loadbalancer.server.port=3002"
     networks:
       - backend
 
@@ -77,10 +69,6 @@ services:
     depends_on:
       - db_core
       - db_audit
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.users.rule=Host(`localhost`) && PathPrefix(`/users`)"
-      - "traefik.http.services.users.loadbalancer.server.port=3003"
     networks:
       - backend
 
@@ -93,10 +81,6 @@ services:
     depends_on:
       - db_core
       - db_audit
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.ops.rule=Host(`localhost`) && PathPrefix(`/ops`)"
-      - "traefik.http.services.ops.loadbalancer.server.port=3004"
     networks:
       - backend
 
@@ -108,10 +92,6 @@ services:
       - .env
     depends_on:
       - db_bi
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.bi.rule=Host(`localhost`) && PathPrefix(`/bi`)"
-      - "traefik.http.services.bi.loadbalancer.server.port=8005"
     networks:
       - backend
 
@@ -120,11 +100,7 @@ services:
       context: .
       dockerfile: apps/frontend/Dockerfile
     depends_on:
-      - gateway
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`localhost`) && PathPrefix(`/`)"
-      - "traefik.http.services.frontend.loadbalancer.server.port=5173"
+      - traefik
     networks:
       - backend
 
